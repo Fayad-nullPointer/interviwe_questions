@@ -90,6 +90,35 @@ In simple terms:
 - Cross-entropy evaluates prediction quality.
 - Information gain evaluates feature usefulness for splitting.
 
+### 9. What do you know about Dataiku (Dataiku DSS)?
+
+Dataiku is an all-in-one platform for data science, analytics, and machine learning. It helps data scientists and business analysts work together in one workspace.
+
+Key features:
+- **Visual & Code Interface**: Allows non-coders to use visual drag-and-drop tools while developers can write Python, R, or SQL.
+- **Data Preparation**: Connects to databases (like Snowflake or SQL) and cleans data efficiently.
+- **AutoML & Deployment**: Quickly builds models automatically and deploys them as API endpoints with one click.
+- **MLOps**: Monitors model health, data drift, and governance.
+- **Generative AI**: Helps build RAG applications and connect to LLMs like OpenAI or Claude securely.
+
+### 10. What strategies can you use to detect and respond to model drift after deployment?
+
+Model drift happens when a machine learning model's accuracy drops over time because real-world data or patterns have changed.
+
+Types of drift:
+- **Data drift**: The input data changes over time (e.g., customer behavior shifts during a holiday).
+- **Concept drift**: The relationship between inputs and output changes (e.g., economic shifts change how credit risk is scored).
+
+How to detect it:
+- **Statistical tests**: Compare production data against training data using tests like PSI (Population Stability Index) or KS-test.
+- **Performance monitoring**: Continuously track metrics (like Accuracy or F1-score) as new actual results arrive.
+- **Prediction shifts**: Watch for sudden changes in the model's predicted outputs.
+
+How to respond:
+- **Retrain the model**: Automatically retrain the model on newer data when drift passes a threshold.
+- **Use fallback rules**: Temporarily switch to simple rules or human review if performance drops significantly.
+- **Shadow deployment**: Test the retrained model alongside the current model before replacing it.
+
 ---
 
 ## 2. Generative AI and RAG
@@ -192,6 +221,69 @@ A useful analogy is that different heads learn different “views” of the same
 A CNN analogy:
 - In CNNs, multiple kernels act as different feature detectors.
 - They are not identical to attention heads, but both ideas involve projecting the same input into multiple learned representations to capture different patterns.
+
+### 11. How do you save 1,000 PDFs into a vector database?
+
+To efficiently store 1,000 PDFs in a vector database:
+
+1. **Extract text**: Use a PDF parser (like `PyMuPDF` or `pdfplumber`) to extract text and tables. Use OCR for scanned documents.
+2. **Clean data**: Remove page headers, footers, and unwanted spaces.
+3. **Chunk text**: Split documents into smaller pieces (e.g., 500 tokens with 10% overlap) to keep related text together.
+4. **Attach metadata**: Tag each chunk with details like PDF name, page number, and document ID.
+5. **Create embeddings**: Convert chunks into vector numbers using an embedding model (like OpenAI or Hugging Face) in batches.
+6. **Upload in batches**: Store the vectors and metadata in a vector database (like Pinecone, Qdrant, or Milvus).
+
+### 12. If a user updates content in a source PDF, how do you handle it in a RAG system?
+
+If a PDF is updated, the vector database will contain outdated information, leading to incorrect answers.
+
+How to handle it:
+- **Track file hashes**: Save a unique hash (like SHA-256) for each PDF when it is ingested.
+- **Detect changes**: When a file is updated, re-hash it to spot changes quickly.
+- **Delete old vectors**: Search the vector database for all chunks matching that PDF's ID and delete them.
+- **Embed & upload new content**: Chunk and embed only the updated PDF, then save the new vectors.
+- **Clear cache**: Clear any cached answers related to that document.
+
+### 13. If a good RAG system suddenly starts hallucinating, how do you debug it?
+
+If a stable RAG system suddenly degrades, troubleshoot it step-by-step:
+
+1. **Check for model/API changes**: Did the LLM provider update default model versions or system prompts?
+2. **Check recent document imports**: Did newly uploaded documents contain bad, noisy, or conflicting text?
+3. **Isolate Retrieval vs. Generation**:
+   - Pass the correct context text directly to the LLM. If the answer is still wrong, the **LLM or prompt** is the issue.
+   - If the retrieved chunks do not contain the answer, the **retrieval or embedding** step is failing.
+4. **Check vector store health**: Verify if the vector database index is missing data, slow, or returning corrupted results.
+5. **Check context window limits**: Are key retrieved facts getting truncated because the context is too long?
+
+### 14. What techniques can you use to manage context window limitations in LLM applications?
+
+To work around token limits when handling large documents or long chats:
+
+- **Selective retrieval (RAG)**: Fetch only the top 3–5 most relevant chunks instead of feeding full documents.
+- **Summarization**: Summarize long sections or old chat history before passing context to the model.
+- **Sliding window memory**: Keep only the most recent chat messages and save older history in a database.
+- **Prompt pruning**: Strip out unnecessary filler words and stop words to save tokens.
+- **Use long-context models**: Choose LLMs that natively support large context sizes (e.g., 128k+ tokens).
+
+### 15. How would you determine whether poor RAG performance comes from chunking, embeddings, retrieval, reranking, or generation?
+
+Test each component independently to find the bottleneck:
+
+- **Test Generation (LLM)**: Feed the ground-truth text directly to the LLM. If it still gives a bad response $\rightarrow$ **Generation/Prompt problem**.
+- **Test Retrieval**: Check if the top retrieved chunks contain the correct answer. If missing $\rightarrow$ **Retrieval problem**.
+- **Test Chunking**: Check if the answer was split in half across chunk boundaries $\rightarrow$ **Chunking size problem**.
+- **Test Embeddings**: Compare vector search against simple keyword (BM25) search. If keyword search performs much better $\rightarrow$ **Embedding model problem** (doesn't understand domain terms).
+- **Test Reranking**: Compare results before and after reranking. If reranking pushed the right chunk down $\rightarrow$ **Reranker problem**.
+
+### 16. Why might a larger embedding model perform worse than a smaller one for a specific retrieval task?
+
+A larger embedding model is not always better for every task because:
+
+- **Domain mismatch**: A smaller model fine-tuned on your specific topic (e.g., medical or legal code) will beat a large general model.
+- **Information dilution**: Large models aggregate semantics across broad contexts, which can smooth out key details needed to find short specific facts.
+- **Wrong distance metric**: Using cosine similarity when the model expects dot product or Euclidean distance.
+- **Overfitting to noise**: Larger models might capture tiny stylistic or formatting details instead of focusing on core topic meaning.
 
 ---
 
